@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# pre-push hook: queue an async docs sync after this push lands.
+# Never blocks a push, never fails one. Non-interactive by design.
+#
+# Install with:
+#   git config core.hooksPath scripts/git-hooks
+# or symlink/copy into .git/hooks/pre-push.
+
+set -u
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo detached)"
+if [ "$branch" != "${DOCSYNC_BRANCH:-master}" ]; then
+  exit 0
+fi
+
+# pre-push stdin: "<local ref> <local sha> <remote ref> <remote sha>" per line.
+IFS=' ' read -r local_ref local_sha remote_ref remote_sha || exit 0
+[ -n "$local_sha" ] || exit 0
+
+root="$(git rev-parse --show-toplevel)"
+sync_script="$root/scripts/docs-sync.sh"
+[ -x "$sync_script" ] || exit 0
+
+log_dir="${XDG_CACHE_HOME:-$HOME/.cache}/video-build"
+mkdir -p "$log_dir"
+
+nohup "$sync_script" "$local_sha" "$remote_ref" >>"$log_dir/docs-sync.log" 2>&1 &
+echo "video-build: docs sync queued for $remote_ref → $log_dir/docs-sync.log"
+exit 0
