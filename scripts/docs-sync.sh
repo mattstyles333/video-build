@@ -75,6 +75,7 @@ mkdir -p "$DOCS_GUIDE" "$DOCS_PUBLIC"
 
 sed -e 's|](\./SKILL\.md)|(/guide/skill)|g' \
     -e 's|](static/|(/|g' \
+    -e 's|src="static/|src="/|g' \
     README.md > "$DOCS_GUIDE/readme.md"
 
 sed -e 's|skills/manim-video/|https://github.com/mattstyles333/video-build/tree/master/skills/manim-video/|g' \
@@ -102,7 +103,7 @@ else
   if [ -n "$OC" ]; then
     log "running opencode polish pass in $DOCS_REPO_DIR"
     PROMPT="video-build docs sync. The source repo just pushed new changes and its README.md, SKILL.md, and install.md were copied into docs/guide/. Review what changed (git status + diff), then update this docs site so it stays coherent: fix nav/sidebar/cross-links (docs/.vitepress/config.mts), refresh docs/index.md summaries, correct any broken links or typos in the synced guide files. Prefer editing files owned here (index.md, config.mts) over the synced guide files — fix those upstream instead. Verify with 'npm run docs:build', then git add and commit all changes."
-    "$OC" run --auto --standalone -m "${DOCSYNC_MODEL:-opencode-go/grok-4.5}" "$PROMPT" \
+    "$OC" run --auto -m "${DOCSYNC_MODEL:-opencode-go/grok-4.5}" "$PROMPT" \
       || log "opencode pass failed (exit $?) — committing synced content anyway"
   else
     log "opencode not found — committing synced content without polish"
