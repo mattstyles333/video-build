@@ -17,8 +17,17 @@ def _require(cond: bool, msg: str) -> None:
         raise ValidationError(msg)
 
 
-def validate_edl(edl: dict, edit_dir: Path, *, check_files: bool = True) -> None:
+def validate_edl(
+    edl: dict,
+    edit_dir: Path,
+    *,
+    check_files: bool = True,
+    skip_subtitle_file: bool = False,
+) -> None:
     """Validate EDL structure, source references, and time ranges.
+
+    Set skip_subtitle_file when render will build master.srt (--build-subtitles)
+    or skip subtitles entirely (--no-subtitles).
 
     Raises ValidationError with a human-readable message on failure.
     """
@@ -86,7 +95,7 @@ def validate_edl(edl: dict, edit_dir: Path, *, check_files: bool = True) -> None
     subs = edl.get("subtitles")
     if subs is not None:
         _require(isinstance(subs, str) and subs.strip(), "subtitles must be a non-empty path string")
-        if check_files:
+        if check_files and not skip_subtitle_file:
             subs_path = resolve_path(subs, edit_dir)
             _require(subs_path.exists(), f"subtitles path does not exist: {subs_path}")
 

@@ -72,6 +72,18 @@ class ValidateEdlTests(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 validate_edl(edl, edit)
 
+    def test_skip_subtitle_file_for_build(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            edit = Path(tmp)
+            talk = edit / "talk.mp4"
+            talk.write_bytes(b"x")
+            edl = {
+                "sources": {"talk": str(talk)},
+                "ranges": [{"source": "talk", "start": 0, "end": 5}],
+                "subtitles": "master.srt",
+            }
+            validate_edl(edl, edit, skip_subtitle_file=True)
+
     def test_schema_matches_minimal_edl(self) -> None:
         edl = {
             "version": 1,

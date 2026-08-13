@@ -66,7 +66,11 @@ def main() -> None:
     out_path = args.output.resolve()
 
     try:
-        validate_edl(edl, edit_dir)
+        validate_edl(
+            edl,
+            edit_dir,
+            skip_subtitle_file=args.build_subtitles or args.no_subtitles,
+        )
     except ValidationError as e:
         sys.exit(str(e))
 
