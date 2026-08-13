@@ -120,14 +120,16 @@ fi
 
 # -------- 4. commit + push ----------------------------------------------------
 git add -A
-if git diff --cached --quiet; then
-  log "docs repo already up to date — nothing to commit"
-  exit 0
+if ! git diff --cached --quiet; then
+  git commit -q -m "docs: sync from video-build${LOCAL_SHA:+ @ ${LOCAL_SHA:0:7}}"
 fi
-git commit -q -m "docs: sync from video-build${LOCAL_SHA:+ @ ${LOCAL_SHA:0:7}}" \
-  || log "commit failed (nothing to commit?)"
-if git push -q origin HEAD 2>&1; then
-  log "pushed docs repo"
+ahead="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 1)"
+if [ "$ahead" != "0" ]; then
+  if git push -q origin HEAD; then
+    log "pushed docs repo"
+  else
+    log "docs repo push failed (offline?) — committed locally"
+  fi
 else
-  log "docs repo push failed (offline?) — committed locally"
+  log "docs repo already up to date — nothing to commit"
 fi
