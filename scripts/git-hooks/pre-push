@@ -9,7 +9,7 @@
 set -u
 
 branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo detached)"
-if [ "$branch" != "${DOCSYNC_BRANCH:-master}" ]; then
+if [ -n "${DOCSYNC_BRANCH:-}" ] && [ "$branch" != "$DOCSYNC_BRANCH" ]; then
   exit 0
 fi
 
