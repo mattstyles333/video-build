@@ -404,7 +404,7 @@ def extract_segment(
         ]
 
     if split or pic_still:
-        if aud_still and not split:
+        if aud_still:
             cmd += [
                 "-f", "lavfi", "-t", f"{duration:.3f}",
                 "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",

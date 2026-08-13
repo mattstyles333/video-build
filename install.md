@@ -46,7 +46,7 @@ If the repo is already there, `git pull --ff-only` and continue.
 command -v uv >/dev/null && uv sync || pip install -e .
 ```
 
-`pyproject.toml` lists `requests`, `librosa`, `matplotlib`, `pillow`, `numpy`. No console scripts — helpers are invoked directly as `python helpers/<name>.py`.
+`pyproject.toml` lists `requests`, `pillow`, `numpy`. No console scripts — helpers are invoked directly as `python helpers/<name>.py`.
 
 ### 3. Install ffmpeg (+ optional yt-dlp)
 

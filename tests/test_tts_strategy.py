@@ -36,6 +36,23 @@ class TtsWordsTests(unittest.TestCase):
         self.assertAlmostEqual(words[0]["start"], 0.0)
         self.assertAlmostEqual(words[1]["end"], 0.6)
 
+    def test_groups_dict_shaped_times(self) -> None:
+        payload = {
+            "audio_timestamps": {
+                "graph_chars": list("Hi you"),
+                "graph_times": [
+                    {"start": 0.0, "end": 0.1}, {"start": 0.1, "end": 0.2},
+                    {"start": 0.2, "end": 0.3}, {"start": 0.3, "end": 0.35},
+                    {"start": 0.35, "end": 0.5}, {"start": 0.5, "end": 0.6},
+                    {"start": 0.6, "end": 0.8},
+                ],
+            }
+        }
+        words = words_from_timestamps(payload)
+        self.assertEqual([w["text"] for w in words], ["Hi", "you"])
+        self.assertAlmostEqual(words[0]["start"], 0.0)
+        self.assertAlmostEqual(words[1]["end"], 0.6)
+
 
 class StrategyParseTests(unittest.TestCase):
     def test_fence_and_raw(self) -> None:

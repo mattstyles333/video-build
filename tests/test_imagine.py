@@ -118,6 +118,35 @@ class HttpPayloadTests(unittest.TestCase):
         finally:
             ref.unlink(missing_ok=True)
 
+    def test_generate_multi_ref_uses_images_array(self) -> None:
+        refs = []
+        for i in range(2):
+            ref = Path(tempfile.mkdtemp()) / f"r{i}.png"
+            ref.write_bytes(b"img")
+            refs.append(ref)
+
+        class Resp:
+            status_code = 200
+            def json(self):
+                return {"data": [{"b64_json": base64.b64encode(b"OUT").decode()}]}
+
+        captured = {}
+
+        def fake_post(url, headers=None, json=None, timeout=None):
+            captured["url"] = url
+            captured["json"] = json
+            return Resp()
+
+        try:
+            with patch("imagine.requests.post", fake_post):
+                generate_image("key", "hello", refs=refs)
+            self.assertTrue(captured["url"].endswith("/images/edits"))
+            self.assertNotIn("image", captured["json"])
+            self.assertEqual(len(captured["json"]["images"]), 2)
+        finally:
+            for ref in refs:
+                ref.unlink(missing_ok=True)
+
     def test_generate_no_ref_is_generations(self) -> None:
         class Resp:
             status_code = 200
@@ -194,6 +223,16 @@ class HttpPayloadTests(unittest.TestCase):
             self.assertEqual(captured["json"]["duration"], 5)
         finally:
             vid.unlink(missing_ok=True)
+
+    def test_extend_duration_bounds(self) -> None:
+        from imagine import run_revise
+
+        with tempfile.TemporaryDirectory() as tmp:
+            edit = Path(tmp)
+            for bad in (1, 11):
+                with self.assertRaises(ImagineError):
+                    run_revise(edit, "x", "keep walking", "",
+                               kind="extend", duration=bad, model="m", force=False)
 
     def test_moderation_raises(self) -> None:
         class Resp:

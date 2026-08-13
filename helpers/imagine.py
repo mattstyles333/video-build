@@ -211,7 +211,10 @@ def generate_image(
         body["aspect_ratio"] = aspect_ratio
     if refs:
         images = [{"url": file_to_data_uri(p), "type": "image_url"} for p in refs]
-        body["image"] = images[0] if len(images) == 1 else images
+        if len(images) == 1:
+            body["image"] = images[0]
+        else:
+            body["images"] = images
         url = f"{XAI_BASE}/images/edits"
     else:
         url = f"{XAI_BASE}/images/generations"
@@ -541,6 +544,8 @@ def run_revise(
     """kind is 'edit' (change in place) or 'extend' (add duration seconds)."""
     if kind not in {"edit", "extend"}:
         raise ImagineError(f"revise kind must be edit or extend, got {kind!r}")
+    if kind == "extend" and not 2 <= duration <= 10:
+        raise ImagineError("extend duration must be 2–10 (added seconds, not total)")
     assets = load_assets(edit_dir)
     out = edit_dir / "generated" / f"{slug}.mp4"
     if out.exists() and not force:
@@ -557,8 +562,6 @@ def run_revise(
         if kind == "edit":
             rid = start_edit(require_key(), prompt, src, model=model)
         else:
-            if not 1 <= duration <= 15:
-                raise ImagineError("extend duration must be 1–15 (added seconds, not total)")
             rid = start_extend(require_key(), prompt, src, duration=duration, model=model)
         print(f"  request {rid} — polling")
         url = poll_video(require_key(), rid)

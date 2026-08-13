@@ -102,9 +102,17 @@ def words_from_timestamps(payload: dict) -> list[dict]:
     start: float | None = None
     end = 0.0
     for ch, span in zip(chars, times):
-        if not span or len(span) < 2:
+        if not span:
             continue
-        a, b = float(span[0]), float(span[1])
+        if isinstance(span, dict):
+            a_raw, b_raw = span.get("start"), span.get("end")
+            if a_raw is None or b_raw is None:
+                continue
+            a, b = float(a_raw), float(b_raw)
+        else:
+            if len(span) < 2:
+                continue
+            a, b = float(span[0]), float(span[1])
         if ch.isspace():
             if buf.strip():
                 words.append({
