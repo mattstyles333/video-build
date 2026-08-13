@@ -3,16 +3,12 @@ from __future__ import annotations
 
 import base64
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from imagine import (  # noqa: E402
+from video_build.imagine import (  # noqa: E402
     ImagineError,
     enrich_prompt,
     file_to_data_uri,
@@ -23,7 +19,6 @@ from imagine import (  # noqa: E402
     start_edit,
     start_extend,
     start_video,
-    tag_voices,
 )
 
 
@@ -109,7 +104,7 @@ class HttpPayloadTests(unittest.TestCase):
             return Resp()
 
         try:
-            with patch("imagine.requests.post", fake_post):
+            with patch("video_build.imagine.requests.post", fake_post):
                 raw = generate_image("key", "hello", refs=[ref])
             self.assertEqual(raw, b"OUT")
             self.assertTrue(captured["url"].endswith("/images/edits"))
@@ -138,7 +133,7 @@ class HttpPayloadTests(unittest.TestCase):
             return Resp()
 
         try:
-            with patch("imagine.requests.post", fake_post):
+            with patch("video_build.imagine.requests.post", fake_post):
                 generate_image("key", "hello", refs=refs)
             self.assertTrue(captured["url"].endswith("/images/edits"))
             self.assertNotIn("image", captured["json"])
@@ -159,7 +154,7 @@ class HttpPayloadTests(unittest.TestCase):
             captured["url"] = url
             return Resp()
 
-        with patch("imagine.requests.post", fake_post):
+        with patch("video_build.imagine.requests.post", fake_post):
             generate_image("key", "hello", aspect_ratio="9:16")
         self.assertTrue(captured["url"].endswith("/images/generations"))
 
@@ -180,14 +175,14 @@ class HttpPayloadTests(unittest.TestCase):
             return Resp()
 
         try:
-            with patch("imagine.requests.post", fake_post):
+            with patch("video_build.imagine.requests.post", fake_post):
                 rid = start_video("key", "push in", first_frame=img, duration=6)
             self.assertEqual(rid, "abc")
             self.assertIn("image", captured["json"])
             self.assertNotIn("reference_images", captured["json"])
             with self.assertRaises(ImagineError):
                 start_video("key", "x", first_frame=img, ref_images=[img])
-            with patch("imagine.requests.post", fake_post):
+            with patch("video_build.imagine.requests.post", fake_post):
                 start_video("key", "she speaks", first_frame=img, voices=["eve"])
             self.assertEqual(captured["json"]["reference_audios"], [{"voice_id": "eve"}])
             self.assertIn("<AUDIO_0>", captured["json"]["prompt"])
@@ -212,12 +207,12 @@ class HttpPayloadTests(unittest.TestCase):
             return Resp()
 
         try:
-            with patch("imagine.requests.post", fake_post):
+            with patch("video_build.imagine.requests.post", fake_post):
                 start_edit("key", "stormier sky", vid)
             self.assertTrue(captured["url"].endswith("/videos/edits"))
             self.assertIn("video", captured["json"])
             self.assertTrue(captured["json"]["video"]["url"].startswith("data:video/mp4;base64,"))
-            with patch("imagine.requests.post", fake_post):
+            with patch("video_build.imagine.requests.post", fake_post):
                 start_extend("key", "keep walking", vid, duration=5)
             self.assertTrue(captured["url"].endswith("/videos/extensions"))
             self.assertEqual(captured["json"]["duration"], 5)
@@ -225,7 +220,7 @@ class HttpPayloadTests(unittest.TestCase):
             vid.unlink(missing_ok=True)
 
     def test_extend_duration_bounds(self) -> None:
-        from imagine import run_revise
+        from video_build.imagine import run_revise
 
         with tempfile.TemporaryDirectory() as tmp:
             edit = Path(tmp)
@@ -240,7 +235,7 @@ class HttpPayloadTests(unittest.TestCase):
             def json(self):
                 return {"respect_moderation": False, "data": []}
 
-        with patch("imagine.requests.post", lambda *a, **k: Resp()):
+        with patch("video_build.imagine.requests.post", lambda *a, **k: Resp()):
             with self.assertRaises(ImagineError):
                 generate_image("key", "blocked")
 

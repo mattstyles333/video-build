@@ -1,0 +1,9 @@
+{
+  "text": "Hello world",
+  "language_code": "en",
+  "words": [
+    {"type": "word", "text": "Hello", "start": 0.0, "end": 0.4, "speaker_id": "speaker_0"},
+    {"type": "spacing", "text": " ", "start": 0.4, "end": 0.42},
+    {"type": "word", "text": "world", "start": 0.42, "end": 0.8, "speaker_id": "speaker_0"}
+  ]
+}

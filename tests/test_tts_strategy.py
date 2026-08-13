@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import sys
 import unittest
 from pathlib import Path
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from render import (  # noqa: E402
+from video_build.imagine import tag_voices  # noqa: E402
+from video_build.render import (  # noqa: E402
     audio_mix_filter_parts,
     duck_volume_expr,
     is_music_bed,
     speech_windows_from_edl,
 )
-from strategy import parse_model_json  # noqa: E402
-from tts import words_from_timestamps  # noqa: E402
-from imagine import tag_voices  # noqa: E402
+from video_build.strategy import StrategyError, parse_model_json  # noqa: E402
+from video_build.tts import words_from_timestamps  # noqa: E402
 
 
 class TtsWordsTests(unittest.TestCase):
@@ -62,7 +58,7 @@ class StrategyParseTests(unittest.TestCase):
         self.assertEqual(data["gaps"][0]["slug"], "x")
 
     def test_rejects_empty(self) -> None:
-        with self.assertRaises(Exception):
+        with self.assertRaises(StrategyError):
             parse_model_json('{"nope": 1}')
 
 
@@ -98,7 +94,6 @@ class AudioMixTests(unittest.TestCase):
 
     def test_speech_windows_skip_stills(self) -> None:
         import tempfile
-        from pathlib import Path
         with tempfile.TemporaryDirectory() as tmp:
             edit = Path(tmp)
             still = edit / "hero.png"

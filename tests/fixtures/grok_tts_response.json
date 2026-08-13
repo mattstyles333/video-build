@@ -1,0 +1,22 @@
+{
+  "audio": "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=",
+  "duration": 1.8,
+  "audio_timestamps": {
+    "graph_chars": ["W", "e", " ", "f", "i", "x", "e", "d", " ", "t", "h", "i", "s"],
+    "graph_times": [
+      {"start": 0.0, "end": 0.08},
+      {"start": 0.08, "end": 0.16},
+      {"start": 0.16, "end": 0.20},
+      {"start": 0.20, "end": 0.28},
+      {"start": 0.28, "end": 0.36},
+      {"start": 0.36, "end": 0.48},
+      {"start": 0.48, "end": 0.56},
+      {"start": 0.56, "end": 0.72},
+      {"start": 0.72, "end": 0.76},
+      {"start": 0.76, "end": 0.84},
+      {"start": 0.84, "end": 0.92},
+      {"start": 0.92, "end": 1.00},
+      {"start": 1.00, "end": 1.20}
+    ]
+  }
+}

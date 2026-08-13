@@ -1,0 +1,13 @@
+{
+  "text": "Ninety percent wasted. We fixed this.",
+  "language": "en",
+  "duration": 6.74,
+  "words": [
+    {"text": "Ninety", "start": 2.52, "end": 2.88, "speaker": 0},
+    {"text": "percent", "start": 2.90, "end": 3.20, "speaker": 0},
+    {"text": "wasted.", "start": 3.22, "end": 3.60, "speaker": 0},
+    {"text": "We", "start": 6.08, "end": 6.20, "speaker": 0},
+    {"text": "fixed", "start": 6.22, "end": 6.50, "speaker": 0},
+    {"text": "this.", "start": 6.52, "end": 6.74, "speaker": 0}
+  ]
+}

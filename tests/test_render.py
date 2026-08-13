@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import sys
 import unittest
 from pathlib import Path
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from render import (  # noqa: E402
+from video_build.render import (  # noqa: E402
     SUB_FORCE_STYLE,
     apply_caption_case,
     apply_transition_sugar,

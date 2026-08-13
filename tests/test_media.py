@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from inventory import parse_set_look, render_bin_md  # noqa: E402
-from media import asset_id, fingerprint, iter_assets, kind_of  # noqa: E402
+from video_build.inventory import parse_set_look, render_bin_md  # noqa: E402
+from video_build.media import asset_id, fingerprint, iter_assets, kind_of  # noqa: E402
 
 
 class KindTests(unittest.TestCase):

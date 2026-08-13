@@ -13,12 +13,40 @@ dependencies = [
 [project.optional-dependencies]
 animations = ["manim"]
 
+[project.scripts]
+video-build-render = "video_build.render.cli:main"
+video-build-inventory = "video_build.inventory:main"
+video-build-transcribe = "video_build.transcribe:main"
+video-build-transcribe-batch = "video_build.transcribe_batch:main"
+video-build-pack-transcripts = "video_build.pack_transcripts:main"
+video-build-timeline-view = "video_build.timeline_view:main"
+video-build-imagine = "video_build.imagine:main"
+video-build-tts = "video_build.tts:main"
+video-build-strategy = "video_build.strategy:main"
+video-build-history = "video_build.history:main"
+video-build-session = "video_build.session:main"
+video-build-graphic = "video_build.graphic:main"
+video-build-grade = "video_build.grade:main"
+video-build-validate-edl = "video_build.validate_cli:main"
+
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "ruff", "jsonschema"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = []
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["video_build*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

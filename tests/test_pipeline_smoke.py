@@ -5,17 +5,13 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from graphic import render_card, render_lower_third  # noqa: E402
-from inventory import build_bin  # noqa: E402
-from render import concat_segments, extract_segment, build_final_composite  # noqa: E402
+from video_build.graphic import render_card, render_lower_third  # noqa: E402
+from video_build.inventory import build_bin  # noqa: E402
+from video_build.render import build_final_composite, concat_segments, extract_segment  # noqa: E402
 
 
 def have_ffmpeg() -> bool:

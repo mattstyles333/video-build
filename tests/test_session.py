@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from session import (  # noqa: E402
+from video_build.session import (  # noqa: E402
     SessionError,
     confirm,
     inspect,
@@ -40,7 +36,7 @@ class SessionGateTests(unittest.TestCase):
 
 class PictureParseTests(unittest.TestCase):
     def test_picture_shapes(self) -> None:
-        from render import parse_picture
+        from video_build.render import parse_picture
         self.assertIsNone(parse_picture({"source": "a"}))
         self.assertEqual(parse_picture({"picture": "hero"})["source"], "hero")
         p = parse_picture({"picture": {"source": "hero", "start": 1.5, "kenburns": True}})

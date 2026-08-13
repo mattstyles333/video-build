@@ -2,15 +2,11 @@
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-HELPERS = Path(__file__).resolve().parents[1] / "helpers"
-sys.path.insert(0, str(HELPERS))
-
-from history import (  # noqa: E402
+from video_build.history import (  # noqa: E402
     FOOTAGE_GITIGNORE,
     init_footage,
     list_snapshots,
