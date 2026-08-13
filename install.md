@@ -33,7 +33,7 @@ And one thing must be true about the current agent:
 ### 1. Clone to a stable path
 
 ```bash
-test -d ~/Developer/video-build || git clone https://github.com/mattstyles333/video-use ~/Developer/video-build
+test -d ~/Developer/video-build || git clone https://github.com/mattstyles333/video-build ~/Developer/video-build
 cd ~/Developer/video-build
 ```
 

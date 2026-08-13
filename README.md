@@ -31,7 +31,7 @@ A fork of [video-use](https://github.com/browser-use/video-use) with a first-cla
 Paste into Grok, Claude Code, Codex, Hermes, Openclaw, or any agent with shell access:
 
 ```text
-Set up video-build from https://github.com/mattstyles333/video-use for me.
+Set up video-build from https://github.com/mattstyles333/video-build for me.
 
 Read install.md first to install this repo, wire up ffmpeg, register the skill as video-build with whichever agent you're running under, and set up an xAI or ElevenLabs API key — ask me to paste it when you need it. Then read SKILL.md for daily usage, and always read helpers/ because that's where the editing scripts live. After install, don't transcribe anything on your own — just tell me it's ready and wait for me to drop footage into a folder.
 ```
@@ -57,7 +57,7 @@ If you'd rather do it by hand:
 
 ```bash
 # 1. Clone and symlink into your agent's skills directory
-git clone https://github.com/mattstyles333/video-use ~/Developer/video-build
+git clone https://github.com/mattstyles333/video-build ~/Developer/video-build
 ln -sfn ~/Developer/video-build ~/.grok/skills/video-build          # Grok
 # ln -sfn ~/Developer/video-build ~/.claude/skills/video-build      # Claude Code
 # ln -sfn ~/Developer/video-build ~/.codex/skills/video-build       # Codex
