@@ -22,18 +22,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+from media import asset_id, iter_assets, probe
 from transcribe import PROVIDERS, load_api_key, resolve_provider, transcribe_one
 
 
-VIDEO_EXTS = {".mp4", ".MP4", ".mov", ".MOV", ".mkv", ".MKV", ".avi", ".AVI", ".m4v"}
-
-
 def find_videos(videos_dir: Path) -> list[Path]:
-    videos = sorted(
-        p for p in videos_dir.iterdir()
-        if p.is_file() and p.suffix in VIDEO_EXTS
-    )
-    return videos
+    return [p for p, kind in iter_assets(videos_dir) if kind == "video"]
 
 
 def main() -> None:
@@ -77,8 +71,19 @@ def main() -> None:
     if not videos:
         sys.exit(f"no videos found in {videos_dir}")
 
-    already_cached = [v for v in videos if (edit_dir / "transcripts" / f"{v.stem}.json").exists()]
-    pending = [v for v in videos if v not in already_cached]
+    silent = [v for v in videos if not probe(v).get("has_audio")]
+    speech = [v for v in videos if v not in silent]
+    for v in silent:
+        print(f"  skip {v.relative_to(videos_dir)} (no audio)")
+    if not speech:
+        print("no videos with audio to transcribe")
+        return
+
+    def tr_path(v: Path) -> Path:
+        return edit_dir / "transcripts" / f"{asset_id(v, videos_dir, edit_dir)}.json"
+
+    already_cached = [v for v in speech if tr_path(v).exists()]
+    pending = [v for v in speech if v not in already_cached]
 
     print(f"found {len(videos)} videos ({len(already_cached)} cached, {len(pending)} to transcribe)")
     if not pending:
@@ -103,6 +108,7 @@ def main() -> None:
                 num_speakers=args.num_speakers,
                 verbose=False,
                 provider=provider,
+                name=asset_id(v, videos_dir, edit_dir),
             ): v
             for v in pending
         }

@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -32,6 +31,8 @@ import time
 from pathlib import Path
 
 import requests
+
+from media import read_env_key
 
 
 GROK_STT_URL = "https://api.x.ai/v1/stt"
@@ -44,20 +45,7 @@ KEY_FOR_PROVIDER = {
 
 
 def _read_key(name: str) -> str:
-    for candidate in [Path(__file__).resolve().parent.parent / ".env", Path(".env")]:
-        if not candidate.exists():
-            continue
-        for line in candidate.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            if k.strip() != name:
-                continue
-            val = v.strip().strip('"').strip("'")
-            if val:
-                return val
-    return os.environ.get(name, "").strip()
+    return read_env_key(name)
 
 
 def resolve_provider(explicit: str | None) -> str:
@@ -205,15 +193,19 @@ def transcribe_one(
     num_speakers: int | None = None,
     verbose: bool = True,
     provider: str | None = None,
+    name: str | None = None,
 ) -> Path:
     """Transcribe a single video. Returns path to transcript JSON.
 
     Cached: returns existing path immediately if the transcript already exists.
+    `name` is the cache key (bin asset id). Defaults to the file stem.
     """
     provider = resolve_provider(provider)
     transcripts_dir = edit_dir / "transcripts"
     transcripts_dir.mkdir(parents=True, exist_ok=True)
-    out_path = transcripts_dir / f"{video.stem}.json"
+    out_name = name or video.stem
+    out_path = transcripts_dir / f"{out_name}.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     if out_path.exists():
         if verbose:

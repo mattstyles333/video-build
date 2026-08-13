@@ -184,11 +184,15 @@ def main() -> None:
     if not transcripts_dir.is_dir():
         sys.exit(f"no transcripts directory at {transcripts_dir}")
 
-    json_files = sorted(transcripts_dir.glob("*.json"))
+    json_files = sorted(p for p in transcripts_dir.rglob("*.json") if p.is_file())
     if not json_files:
         sys.exit(f"no .json files in {transcripts_dir}")
 
-    entries = [pack_one_file(p, args.silence_threshold) for p in json_files]
+    entries = []
+    for p in json_files:
+        _stem, duration, phrases = pack_one_file(p, args.silence_threshold)
+        name = p.relative_to(transcripts_dir).with_suffix("").as_posix()
+        entries.append((name, duration, phrases))
     markdown = render_markdown(entries, args.silence_threshold)
 
     out_path = args.output or (edit_dir / "takes_packed.md")
