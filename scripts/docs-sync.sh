@@ -73,7 +73,7 @@ DOCS_GUIDE="$DOCS_REPO_DIR/docs/guide"
 DOCS_PUBLIC="$DOCS_REPO_DIR/docs/public"
 mkdir -p "$DOCS_GUIDE" "$DOCS_PUBLIC"
 
-sed -e 's|](\./SKILL\.md)|(/guide/skill)|g' \
+sed -e 's|\./SKILL\.md|/guide/skill|g' \
     -e 's|](static/|(/|g' \
     -e 's|src="static/|src="/|g' \
     README.md > "$DOCS_GUIDE/readme.md"
