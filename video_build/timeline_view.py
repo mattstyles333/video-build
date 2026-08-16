@@ -15,7 +15,7 @@ Usage:
     python helpers/timeline_view.py <video> <start> <end> -o out.png
     python helpers/timeline_view.py <video> <start> <end> --n-frames 12
     python helpers/timeline_view.py <video> <start> <end> --transcript <path>
-    python helpers/timeline_view.py --edl <edl.json>   (full-project view — not yet)
+    python helpers/timeline_view.py --edl <edl.json> [-o out.png] [--video preview.mp4]
 """
 
 from __future__ import annotations
@@ -29,6 +29,9 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+from video_build.media import is_image
+from video_build.render.common import resolve_path
 
 # -------- Frame extraction ---------------------------------------------------
 
@@ -168,6 +171,120 @@ def load_font(size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+# -------- EDL helpers --------------------------------------------------------
+
+
+def edl_segments(edl: dict) -> list[dict]:
+    """Output-timeline segments derived from EDL ranges."""
+    segs: list[dict] = []
+    offset = 0.0
+    sources = edl.get("sources") or {}
+    for i, r in enumerate(edl.get("ranges") or []):
+        dur = float(r["end"]) - float(r.get("start") or 0)
+        segs.append({
+            "index": i,
+            "output_start": offset,
+            "output_end": offset + dur,
+            "duration": dur,
+            "beat": str(r.get("beat") or r.get("note") or f"seg{i:02d}"),
+            "source": r.get("source"),
+            "src_start": float(r.get("start") or 0),
+            "src_end": float(r["end"]),
+            "source_path": sources.get(r.get("source", "")),
+        })
+        offset += dur
+    return segs
+
+
+def resolve_rendered_video(edl_path: Path, video: Path | None) -> Path | None:
+    if video is not None:
+        video = video.resolve()
+        return video if video.exists() else None
+    edit_dir = edl_path.parent
+    for name in ("preview.mp4", "final.mp4", "base_preview.mp4", "base.mp4"):
+        cand = edit_dir / name
+        if cand.exists():
+            return cand
+    return None
+
+
+def resolve_transcript_for_source(edit_dir: Path, source_id: str) -> Path | None:
+    tr = edit_dir / "transcripts" / f"{source_id}.json"
+    if tr.exists():
+        return tr
+    tr = edit_dir / "transcripts" / f"{Path(source_id).name}.json"
+    return tr if tr.exists() else None
+
+
+def render_edl_timeline(
+    edl_path: Path,
+    out_path: Path,
+    *,
+    video: Path | None = None,
+    n_frames: int = 12,
+) -> None:
+    """Full-project timeline from an EDL — rendered output or stacked source rows."""
+    edl = json.loads(edl_path.read_text())
+    edit_dir = edl_path.parent
+    segs = edl_segments(edl)
+    if not segs:
+        sys.exit("EDL has no ranges")
+
+    rendered = resolve_rendered_video(edl_path, video)
+    if rendered is not None:
+        total = segs[-1]["output_end"]
+        cut_markers = [s["output_start"] for s in segs[1:]]
+        labels = [(s["output_start"], s["beat"]) for s in segs]
+        title = f"{rendered.name}  EDL overview  0.00s → {total:.2f}s  ({len(segs)} segments)"
+        render_timeline(
+            rendered, 0.0, total, out_path, n_frames,
+            transcript=None,
+            title=title,
+            cut_markers=cut_markers,
+            segment_labels=labels,
+        )
+        return
+
+    # No rendered video — stack one mini-timeline row per EDL range from sources.
+    row_h = 320
+    pad = 12
+    canvas_w = 1920
+    canvas_h = pad + len(segs) * (row_h + pad)
+    canvas = Image.new("RGB", (canvas_w, canvas_h), BG)
+    draw = ImageDraw.Draw(canvas)
+    header_font = load_font(20)
+    y = pad
+    for seg in segs:
+        src_id = seg["source"]
+        src_path = resolve_path(seg["source_path"], edit_dir)
+        beat = seg["beat"]
+        label = f"[{seg['index']:02d}] {beat}  {src_id}  {seg['src_start']:.2f}-{seg['src_end']:.2f}s"
+        draw.text((pad, y), label, fill=ACCENT, font=header_font)
+        y += 24
+        row_path = out_path.parent / f"_edl_row_{seg['index']:02d}.png"
+        if is_image(src_path):
+            tr = None
+            render_timeline(
+                src_path, 0.0, seg["duration"], row_path, min(n_frames, 6),
+                transcript=tr, title=None,
+            )
+        else:
+            tr = resolve_transcript_for_source(edit_dir, str(src_id))
+            render_timeline(
+                src_path, seg["src_start"], seg["src_end"], row_path, min(n_frames, 8),
+                transcript=tr, title=None,
+            )
+        row = Image.open(row_path).convert("RGB")
+        row_path.unlink(missing_ok=True)
+        if row.width != canvas_w:
+            row = row.resize((canvas_w, int(row.height * canvas_w / row.width)), Image.LANCZOS)
+        canvas.paste(row, (0, y))
+        y += row.height + pad
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(out_path, "PNG", optimize=True)
+    print(f"saved: {out_path}  ({out_path.stat().st_size // 1024} KB, {len(segs)} source rows)")
+
+
 # -------- Composite ----------------------------------------------------------
 
 
@@ -186,6 +303,10 @@ def render_timeline(
     out_path: Path,
     n_frames: int,
     transcript: Path | None,
+    *,
+    title: str | None = None,
+    cut_markers: list[float] | None = None,
+    segment_labels: list[tuple[float, str]] | None = None,
 ) -> None:
     # Frame extraction
     with tempfile.TemporaryDirectory() as tmp:
@@ -223,12 +344,10 @@ def render_timeline(
         small_font = load_font(12)
 
         # Header — time range
-        draw.text(
-            (50, 12),
-            f"{video.name}   {start:.2f}s → {end:.2f}s   ({(end - start):.2f}s, {n_frames} frames)",
-            fill=FG,
-            font=header_font,
+        header = title or (
+            f"{video.name}   {start:.2f}s → {end:.2f}s   ({(end - start):.2f}s, {n_frames} frames)"
         )
+        draw.text((50, 12), header, fill=FG, font=header_font)
 
         # Filmstrip
         strip_width = canvas_width - 100
@@ -307,6 +426,18 @@ def render_timeline(
             draw.text((cx + 2, wave_y - 18), text, fill=FG, font=small_font)
             last_label_x = cx
 
+        # Cut markers + beat labels (EDL overview mode)
+        if cut_markers:
+            for t in cut_markers:
+                if start <= t <= end:
+                    xi = time_to_x(t)
+                    draw.line((xi, filmstrip_y - 6, xi, wave_y + wave_h), fill=ACCENT, width=2)
+        if segment_labels:
+            for t, beat in segment_labels:
+                if start <= t <= end:
+                    xi = time_to_x(t)
+                    draw.text((xi + 4, filmstrip_y - 22), beat, fill=ACCENT, font=small_font)
+
         # Time ruler below waveform
         ruler_y = wave_y + wave_h + 2
         n_ticks = 6
@@ -345,12 +476,28 @@ def main() -> None:
         "--edl",
         type=Path,
         default=None,
-        help="(Not yet implemented) Render a full-project timeline from an EDL",
+        help="Render a full-project timeline from an EDL (uses preview.mp4 if present)",
+    )
+    ap.add_argument(
+        "--rendered-video",
+        type=Path,
+        default=None,
+        dest="rendered_video",
+        help="Rendered video for --edl mode (default: edit/preview.mp4 or final.mp4)",
     )
     args = ap.parse_args()
 
     if args.edl:
-        sys.exit("--edl mode is not implemented yet; use range mode")
+        edl_path = args.edl.resolve()
+        if not edl_path.exists():
+            sys.exit(f"edl not found: {edl_path}")
+        out_path = args.output
+        if out_path is None:
+            out_dir = edl_path.parent / "verify"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / "edl_overview.png"
+        render_edl_timeline(edl_path, out_path, video=args.rendered_video, n_frames=args.n_frames)
+        return
 
     if not args.video or args.start is None or args.end is None:
         ap.error("video, start, and end are required")

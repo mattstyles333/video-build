@@ -59,7 +59,7 @@ class ValidateEdlTests(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 validate_edl(edl, edit)
 
-    def test_total_duration_mismatch(self) -> None:
+    def test_total_duration_mismatch_warns(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             edit = Path(tmp)
             talk = edit / "talk.mp4"
@@ -69,8 +69,60 @@ class ValidateEdlTests(unittest.TestCase):
                 "ranges": [{"source": "talk", "start": 0, "end": 5}],
                 "total_duration_s": 20,
             }
-            with self.assertRaises(ValidationError):
-                validate_edl(edl, edit)
+            warnings = validate_edl(edl, edit, check_word_boundaries=False)
+            self.assertTrue(any("total_duration_s" in w for w in warnings))
+
+    def test_word_boundary_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            edit = Path(tmp)
+            talk = edit / "talk.mp4"
+            talk.write_bytes(b"x")
+            tr_dir = edit / "transcripts"
+            tr_dir.mkdir()
+            (tr_dir / "talk.json").write_text(json.dumps({
+                "words": [
+                    {"type": "word", "text": "hi", "start": 1.0, "end": 1.5},
+                ]
+            }))
+            edl = {
+                "sources": {"talk": str(talk)},
+                "ranges": [{"source": "talk", "start": 1.1, "end": 1.5}],
+            }
+            warnings = validate_edl(edl, edit)
+            self.assertTrue(any("word boundary" in w for w in warnings))
+
+    def test_strict_word_boundary_via_validate_cli_pattern(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            edit = Path(tmp)
+            talk = edit / "talk.mp4"
+            talk.write_bytes(b"x")
+            tr_dir = edit / "transcripts"
+            tr_dir.mkdir()
+            (tr_dir / "talk.json").write_text(json.dumps({
+                "words": [{"type": "word", "text": "hi", "start": 1.0, "end": 1.5}]
+            }))
+            edl = {
+                "sources": {"talk": str(talk)},
+                "ranges": [{"source": "talk", "start": 1.1, "end": 1.5}],
+            }
+            warnings = validate_edl(edl, edit)
+            self.assertTrue(warnings)
+
+    def test_schema_via_validate_edl(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            edit = Path(tmp)
+            talk = edit / "talk.mp4"
+            talk.write_bytes(b"x")
+            edl = {
+                "version": 1,
+                "sources": {"talk": str(talk)},
+                "ranges": [{"source": "talk", "start": 0, "end": 1}],
+            }
+            validate_edl(edl, edit, check_word_boundaries=False)
+
+    def test_invalid_schema_raises(self) -> None:
+        with self.assertRaises(ValidationError):
+            validate_edl({"ranges": []}, Path("/tmp"), check_files=False)
 
     def test_skip_subtitle_file_for_build(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

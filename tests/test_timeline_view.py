@@ -6,7 +6,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from video_build.timeline_view import find_silences, words_in_range
+from video_build.timeline_view import edl_segments, find_silences, words_in_range
+
+
+class EdlSegmentTests(unittest.TestCase):
+    def test_cumulative_duration(self) -> None:
+        edl = {
+            "sources": {"a": "/a", "b": "/b"},
+            "ranges": [
+                {"source": "a", "start": 0, "end": 4},
+                {"source": "b", "start": 0, "end": 2, "beat": "B"},
+            ],
+        }
+        segs = edl_segments(edl)
+        self.assertAlmostEqual(segs[-1]["output_end"], 6.0)
+        self.assertEqual(segs[1]["beat"], "B")
 
 
 class TimelineViewTests(unittest.TestCase):

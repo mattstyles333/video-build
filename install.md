@@ -48,7 +48,7 @@ command -v uv >/dev/null && uv sync || pip install -e .
 
 `pyproject.toml` lists `requests`, `pillow`, `numpy`. After `uv sync`, helpers are available two ways:
 
-- **Console commands** (preferred): `video-build-inventory`, `video-build-render`, `video-build-transcribe`, etc.
+- **Console commands** (preferred): `video-build-inventory`, `video-build-render`, `video-build-transcribe`, `video-build-self-eval`, etc.
 - **Legacy shims** (still documented in SKILL.md): `uv run python helpers/<name>.py`
 
 Both require deps installed (`uv sync` or `pip install -e .`). Bare system Python without the venv will fail on imports like `PIL`.

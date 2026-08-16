@@ -7,6 +7,7 @@ import json
 import unittest
 from pathlib import Path
 
+from video_build.strategy import StrategyError, parse_model_json
 from video_build.transcribe import grok_to_scribe
 from video_build.tts import words_from_timestamps
 
@@ -43,6 +44,27 @@ class TtsContractTests(unittest.TestCase):
         self.assertEqual([w["text"] for w in words], ["We", "fixed", "this"])
         self.assertAlmostEqual(words[0]["start"], 0.0)
         self.assertAlmostEqual(words[-1]["end"], 1.20)
+
+
+class ScribeContractTests(unittest.TestCase):
+    def test_elevenlabs_shape_preserved(self) -> None:
+        raw = json.loads((FIXTURES / "elevenlabs_scribe_response.json").read_text())
+        self.assertEqual(raw["words"][0]["type"], "word")
+        self.assertEqual(raw["words"][1]["type"], "spacing")
+        words = [w for w in raw["words"] if w["type"] == "word"]
+        self.assertEqual(len(words), 2)
+
+
+class StrategyContractTests(unittest.TestCase):
+    def test_parse_fenced_json(self) -> None:
+        raw = '```json\n{"strategy_md": "# Plan\\n", "gaps": [{"slug": "street"}]}\n```'
+        data = parse_model_json(raw)
+        self.assertIn("Plan", data["strategy_md"])
+        self.assertEqual(data["gaps"][0]["slug"], "street")
+
+    def test_rejects_missing_strategy_md(self) -> None:
+        with self.assertRaises(StrategyError):
+            parse_model_json('{"gaps": []}')
 
 
 if __name__ == "__main__":

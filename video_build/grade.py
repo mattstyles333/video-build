@@ -174,8 +174,8 @@ def _sample_frame_stats(
         Path(metadata_path).unlink(missing_ok=True)
 
 
-def compute_auto_filter(stats: dict[str, float]) -> str:
-    """Pure auto-grade decision from analyzed frame stats (testable without ffmpeg)."""
+def compute_auto_adjustments(stats: dict[str, float]) -> dict[str, float]:
+    """Return per-axis adjustment values (testable without ffmpeg)."""
     y_mean = stats["y_mean"]
     y_range = stats["y_std"] * 4.0
     sat_mean = stats["sat_mean"]
@@ -200,18 +200,23 @@ def compute_auto_filter(stats: dict[str, float]) -> str:
     elif sat_mean > 0.38:
         sat_adj = 0.96
 
-    contrast_adj = max(0.94, min(1.08, contrast_adj))
-    gamma_adj = max(0.94, min(1.10, gamma_adj))
-    sat_adj = max(0.94, min(1.06, sat_adj))
+    return {
+        "contrast": max(0.94, min(1.08, contrast_adj)),
+        "gamma": max(0.94, min(1.10, gamma_adj)),
+        "saturation": max(0.94, min(1.06, sat_adj)),
+    }
 
+
+def compute_auto_filter(stats: dict[str, float]) -> str:
+    """Pure auto-grade filter string from analyzed frame stats."""
+    adj = compute_auto_adjustments(stats)
     eq_parts = []
-    if abs(contrast_adj - 1.0) > 0.005:
-        eq_parts.append(f"contrast={contrast_adj:.3f}")
-    if abs(gamma_adj - 1.0) > 0.005:
-        eq_parts.append(f"gamma={gamma_adj:.3f}")
-    if abs(sat_adj - 1.0) > 0.005:
-        eq_parts.append(f"saturation={sat_adj:.3f}")
-
+    if abs(adj["contrast"] - 1.0) > 0.005:
+        eq_parts.append(f"contrast={adj['contrast']:.3f}")
+    if abs(adj["gamma"] - 1.0) > 0.005:
+        eq_parts.append(f"gamma={adj['gamma']:.3f}")
+    if abs(adj["saturation"] - 1.0) > 0.005:
+        eq_parts.append(f"saturation={adj['saturation']:.3f}")
     return "eq=" + ":".join(eq_parts) if eq_parts else ""
 
 
@@ -249,12 +254,13 @@ def auto_grade_for_clip(
     y_mean = stats["y_mean"]
     y_range = stats["y_std"] * 4.0
     sat_mean = stats["sat_mean"]
-
+    adj = compute_auto_adjustments(stats)
     filter_string = compute_auto_filter(stats)
 
     if verbose:
         print("  auto-grade stats:")
         print(f"    y_mean={y_mean:.3f}  y_range={y_range:.3f}  sat_mean={sat_mean:.3f}")
+        print(f"    → contrast={adj['contrast']:.3f}  gamma={adj['gamma']:.3f}  sat={adj['saturation']:.3f}")
         print(f"    → filter: {filter_string or '(empty)'}")
 
     return filter_string, stats

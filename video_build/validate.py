@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+
+import jsonschema
 
 from video_build.media import is_image
 from video_build.render.common import resolve_path
+
+SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schemas" / "edl.schema.json"
+EDL_SCHEMA = json.loads(SCHEMA_PATH.read_text())
 
 
 class ValidationError(ValueError):
@@ -17,21 +23,34 @@ def _require(cond: bool, msg: str) -> None:
         raise ValidationError(msg)
 
 
+def validate_edl_schema(edl: dict) -> None:
+    """Validate EDL against schemas/edl.schema.json."""
+    jsonschema.validate(edl, EDL_SCHEMA)
+
+
 def validate_edl(
     edl: dict,
     edit_dir: Path,
     *,
     check_files: bool = True,
     skip_subtitle_file: bool = False,
-) -> None:
+    check_word_boundaries: bool = True,
+) -> list[str]:
     """Validate EDL structure, source references, and time ranges.
+
+    Returns non-fatal warnings (duration mismatch, word-boundary drift).
+    Raises ValidationError on hard failures.
 
     Set skip_subtitle_file when render will build master.srt (--build-subtitles)
     or skip subtitles entirely (--no-subtitles).
-
-    Raises ValidationError with a human-readable message on failure.
     """
+    warnings: list[str] = []
     _require(isinstance(edl, dict), "EDL must be a JSON object")
+
+    try:
+        validate_edl_schema(edl)
+    except jsonschema.ValidationError as e:
+        raise ValidationError(f"EDL schema: {e.message}") from e
 
     version = edl.get("version")
     if version is not None:
@@ -112,15 +131,19 @@ def validate_edl(
 
     computed = sum(float(r["end"]) - float(r.get("start") or 0) for r in ranges)
     if total is not None and abs(computed - float(total)) > 0.5:
-        raise ValidationError(
-            f"total_duration_s ({total}) differs from sum of ranges ({computed:.2f}s) by > 0.5s"
+        warnings.append(
+            f"total_duration_s ({total}) differs from sum of ranges ({computed:.2f}s) by > 0.5s "
+            f"(expected {computed:.2f}s)"
         )
+
+    if check_word_boundaries:
+        warnings.extend(validate_range_word_boundaries(edl, edit_dir))
+
+    return warnings
 
 
 def validate_range_word_boundaries(edl: dict, edit_dir: Path) -> list[str]:
-    """Optional: warn if range edges don't align with word boundaries. Returns warnings."""
-    import json
-
+    """Warn if range edges don't align with word boundaries."""
     warnings: list[str] = []
     transcripts_dir = edit_dir / "transcripts"
     sources = edl.get("sources") or {}
@@ -132,6 +155,8 @@ def validate_range_word_boundaries(edl: dict, edit_dir: Path) -> list[str]:
         if is_image(resolve_path(sources[src], edit_dir)):
             continue
         tr_path = transcripts_dir / f"{src}.json"
+        if not tr_path.exists():
+            tr_path = transcripts_dir / f"{Path(str(src)).name}.json"
         if not tr_path.exists():
             continue
         transcript = json.loads(tr_path.read_text())

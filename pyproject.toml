@@ -8,6 +8,7 @@ dependencies = [
     "requests",
     "pillow",
     "numpy",
+    "jsonschema",
 ]
 
 [project.optional-dependencies]
@@ -28,9 +29,10 @@ video-build-session = "video_build.session:main"
 video-build-graphic = "video_build.graphic:main"
 video-build-grade = "video_build.grade:main"
 video-build-validate-edl = "video_build.validate_cli:main"
+video-build-self-eval = "video_build.self_eval:main"
 
 [dependency-groups]
-dev = ["pytest", "ruff", "jsonschema"]
+dev = ["pytest", "ruff"]
 
 [build-system]
 requires = ["setuptools>=61.0"]

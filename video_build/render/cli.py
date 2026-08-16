@@ -21,6 +21,13 @@ from video_build.session import SessionError, require_confirmed
 from video_build.validate import ValidationError, validate_edl
 
 
+def _report_warnings(warnings: list[str], *, strict: bool) -> None:
+    for w in warnings:
+        print(f"warning: {w}")
+    if strict and warnings:
+        sys.exit("validation warnings (--strict)")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Render a video from an EDL")
     ap.add_argument("edl", type=Path, help="Path to edl.json")
@@ -55,6 +62,11 @@ def main() -> None:
         action="store_true",
         help="Render even if strategy.md is not confirmed.",
     )
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit if validation warnings (word boundaries, duration mismatch)",
+    )
     args = ap.parse_args()
 
     edl_path = args.edl.resolve()
@@ -66,11 +78,12 @@ def main() -> None:
     out_path = args.output.resolve()
 
     try:
-        validate_edl(
+        warnings = validate_edl(
             edl,
             edit_dir,
             skip_subtitle_file=args.build_subtitles or args.no_subtitles,
         )
+        _report_warnings(warnings, strict=args.strict)
     except ValidationError as e:
         sys.exit(str(e))
 

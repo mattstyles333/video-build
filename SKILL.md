@@ -80,19 +80,23 @@ Helpers (`helpers/transcribe.py`, `helpers/render.py`, etc.) live alongside this
 
 ## Helpers
 
-- **`inventory.py <videos_dir>`** — walk video + image + audio (skips `edit/`). Writes `bin.json`, `bin.md`, contact-sheet/still/waveform thumbs. Hash-cached. `--set-look ID="one line"` to persist a visual description. `--force` rebuilds thumbs.
-- **`transcribe.py <video>`** — single-file STT call. Auto: Grok if `XAI_API_KEY` is set, else ElevenLabs Scribe. Force with `--provider grok|elevenlabs`. `--num-speakers N` optional (Scribe only). Cached.
-- **`transcribe_batch.py <videos_dir>`** — parallel STT of videos that have an audio track. Recurses; skips silent B-roll and images.
-- **`pack_transcripts.py --edit-dir <dir>`** — `transcripts/**/*.json` → `takes_packed.md` (phrase-level, break on silence ≥ 0.5s).
-- **`timeline_view.py <video> <start> <end>`** — filmstrip + waveform PNG. On-demand visual drill-down. **Not a scan tool** — use it at decision points, not constantly.
-- **`imagine.py still|video|shot|edit|extend|fill`** — Grok Imagine. `shot` = still then animate. `edit` changes an existing clip. `extend` continues it from the last frame (`--duration` is **added** seconds). `--ref` / `--video` are bin ids. `fill` runs `edit/gaps.json`.
-- **`tts.py say|voices`** — Grok TTS. Writes `edit/generated/<slug>.wav` (48 kHz) plus a word-level transcript under `transcripts/generated/`. Mix via EDL `audio_tracks`.
-- **`strategy.py draft`** — Grok writes a **draft** `strategy.md` + `gaps.json` from bin + packed speech + `--brief`. Still wait for confirmation.
-- **`history.py init|snapshot|list|restore`** — version the program (EDL / strategy / gaps), not the pixels. `restore N --beat CITY` splices one beat. `init <videos_dir>` writes a media-safe `.gitignore`.
-- **`session.py status|confirm|check`** — gate. `confirm` after the user accepts `strategy.md`. `fill` and `render` refuse to run until then (`--force` overrides).
-- **`graphic.py lower-third|title|card -o <png> --title ...`** — static transparent overlay. Use for names, title cards, stat callouts. Animated graphics still go through HyperFrames / Remotion / Manim / PIL slots.
-- **`render.py <edl.json> -o <out>`** — per-segment extract → concat → overlays (PTS-shifted) → subtitles LAST. `--preview` for 720p fast. `--build-subtitles` to generate master.srt inline. Stills in `sources` become held (or Ken Burns) clips.
-- **`grade.py <in> -o <out>`** — ffmpeg filter chain grade. Presets + `--filter '<raw>'` for custom.
+Commands work as `video-build-<tool>` after `uv sync`, or as `uv run python helpers/<tool>.py` (legacy shims). Examples below use the console form.
+
+- **`video-build-inventory <videos_dir>`** — walk video + image + audio (skips `edit/`). Writes `bin.json`, `bin.md`, contact-sheet/still/waveform thumbs. Hash-cached. `--set-look ID="one line"` to persist a visual description. `--force` rebuilds thumbs.
+- **`video-build-transcribe <video>`** — single-file STT call. Auto: Grok if `XAI_API_KEY` is set, else ElevenLabs Scribe. Force with `--provider grok|elevenlabs`. `--num-speakers N` optional (Scribe only). Cached.
+- **`video-build-transcribe-batch <videos_dir>`** — parallel STT of videos that have an audio track. Recurses; skips silent B-roll and images.
+- **`video-build-pack-transcripts --edit-dir <dir>`** — `transcripts/**/*.json` → `takes_packed.md` (phrase-level, break on silence ≥ 0.5s).
+- **`video-build-timeline-view <video> <start> <end>`** — filmstrip + waveform PNG. On-demand visual drill-down. **`--edl <edl.json>`** renders a full-project overview (uses `preview.mp4` when present). **Not a scan tool** — use at decision points.
+- **`video-build-imagine still|video|shot|edit|extend|fill`** — Grok Imagine. `shot` = still then animate. `edit` changes an existing clip. `extend` continues it from the last frame (`--duration` is **added** seconds). `--ref` / `--video` are bin ids. `fill` runs `edit/gaps.json`.
+- **`video-build-tts say|voices`** — Grok TTS. Writes `edit/generated/<slug>.wav` (48 kHz) plus a word-level transcript under `transcripts/generated/`. Mix via EDL `audio_tracks`.
+- **`video-build-strategy draft`** — Grok writes a **draft** `strategy.md` + `gaps.json` from bin + packed speech + `--brief`. Still wait for confirmation.
+- **`video-build-history init|snapshot|list|restore`** — version the program (EDL / strategy / gaps), not the pixels. `restore N --beat CITY` splices one beat. `init <videos_dir>` writes a media-safe `.gitignore`.
+- **`video-build-session status|confirm|check`** — gate. `confirm` after the user accepts `strategy.md`. `fill` and `render` refuse to run until then (`--force` overrides).
+- **`video-build-graphic lower-third|title|card -o <png> --title ...`** — static transparent overlay. Use for names, title cards, stat callouts. Animated graphics still go through HyperFrames / Remotion / Manim / PIL slots.
+- **`video-build-render <edl.json> -o <out>`** — per-segment extract → concat → overlays (PTS-shifted) → subtitles LAST. `--preview` for 720p fast. `--build-subtitles` to generate master.srt inline. `--strict` fails on word-boundary warnings. Stills in `sources` become held (or Ken Burns) clips.
+- **`video-build-grade <in> -o <out>`** — ffmpeg filter chain grade. Presets + `--filter '<raw>'` for custom.
+- **`video-build-validate-edl <edl.json>`** — validate EDL structure + file refs before render.
+- **`video-build-self-eval --edl <edl.json> [--video preview.mp4]`** — PNGs at every cut boundary + duration check. Run after preview render, before showing the user.
 
 For animations, create `<edit>/animations/slot_<id>/` with `Bash` and spawn a sub-agent via the `Agent` tool.
 
@@ -105,8 +109,8 @@ For animations, create `<edit>/animations/slot_<id>/` with `Bash` and spawn a su
 5. **Draft + confirm strategy.** After you have the brief, `strategy.py draft --edit-dir <edit> --brief "..."`. Read it, revise with the user. When they accept it, `session.py confirm --edit-dir <edit>`. Do not treat the draft as approved. `session.py status` on startup.
 6. **Fill gaps.** Confirmed `gaps.json` → `imagine.py fill --edit-dir <edit> --videos-dir <folder>`. Confirmed Voiceover lines → `tts.py say --edit-dir <edit> --slug vo --text "..." --voice eve`. Then re-pack transcripts if VO was added.
 7. **Execute.** Produce `edl.json` from the confirmed strategy. Drill into `timeline_view` at ambiguous moments. Build `graphic.py` overlays and animation slots. Compose via `render.py`.
-8. **Preview.** `render.py --preview`.
-9. **Self-eval (before showing the user).** Run `timeline_view` on the **rendered output** (not the sources) at every cut boundary (±1.5s window). Check each image for:
+8. **Preview.** `video-build-render edl.json -o preview.mp4 --preview`.
+9. **Self-eval (before showing the user).** `video-build-self-eval --edl edit/edl.json --video edit/preview.mp4` — or manually run `video-build-timeline-view` on the **rendered output** at every cut boundary (±1.5s window). Check each image for:
    - Visual discontinuity / flash / jump at the cut
    - Waveform spike at the boundary (audio pop that slipped past the 30ms fade)
    - Subtitle hidden behind an overlay (Rule 1 violation)

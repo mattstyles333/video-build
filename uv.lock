@@ -1959,6 +1959,7 @@ name = "video-build"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "jsonschema" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -1974,13 +1975,13 @@ animations = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "jsonschema" },
     { name = "pytest" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "jsonschema" },
     { name = "manim", marker = "extra == 'animations'" },
     { name = "numpy" },
     { name = "pillow" },
@@ -1990,7 +1991,6 @@ provides-extras = ["animations"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "jsonschema" },
     { name = "pytest" },
     { name = "ruff" },
 ]

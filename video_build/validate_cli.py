@@ -18,15 +18,24 @@ def main() -> None:
         action="store_true",
         help="Validate structure only; do not require source files to exist",
     )
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 1 on validation warnings (word boundaries, duration mismatch)",
+    )
     args = ap.parse_args()
     edl_path = args.edl.resolve()
     if not edl_path.exists():
         sys.exit(f"edl not found: {edl_path}")
     edl = json.loads(edl_path.read_text())
     try:
-        validate_edl(edl, edl_path.parent, check_files=not args.no_file_check)
+        warnings = validate_edl(edl, edl_path.parent, check_files=not args.no_file_check)
     except ValidationError as e:
         sys.exit(str(e))
+    for w in warnings:
+        print(f"warning: {w}")
+    if args.strict and warnings:
+        sys.exit("validation warnings (--strict)")
     print("EDL valid")
 
 
